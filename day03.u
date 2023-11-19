@@ -1,0 +1,123 @@
+use lib.base.data
+use lib.base.data.ByteArray
+use lib.uniparsec.Parser
+use Parser
+use day03
+use Slope Slope
+use Geology Geology
+use Coord
+
+day03.part2 : '{IO, Exception} ()
+day03.part2 = do
+  submitSolution (Day 3) (Part 2) part2.solve
+
+day03.part2.solve.example : '{IO, Exception} Text
+day03.part2.solve.example _ = part2.solve day03.example
+
+day03.part2.solve : Text ->{IO, Exception} Text
+day03.part2.solve input =
+  geo = parse input
+  Nat.toText <| List.foldLeft (n slope -> n Nat.* solveForSlope geo slope) 1 slopes
+  
+day03.part2.solveForSlope geo slope =
+  coords = streamCoords (height geo) slope
+  countTrees = Stream.fold (count coord -> if isTree geo coord then count Nat.+ 1 else count) 0 coords
+  countTrees ()
+
+day03.part2.slopes = [
+  Slope 1 1,
+  Slope 3 1,
+  Slope 5 1,
+  Slope 7 1,
+  Slope 1 2
+  ]
+
+---
+
+day03.parseInput : Parser e Char Geology
+day03.parseInput =
+  use List.Nonempty size toList
+  use Parser const many1
+  use ascii char
+  parseChar = Parser.or (char ?. *> const 0) (char ?# *> const 1)
+  parseLine = many1 parseChar <* optional eol
+  parseLines = many1 parseLine
+  Parser.map
+    (lines -> let
+      width = Nonempty.head lines |> size
+      height = size lines
+      bytes = List.flatMap toList (toList lines) |> ByteArray.fromList
+      Geology bytes width height) parseLines
+
+test> day03.parseInput.tests.ex =
+  test.run <| match Parser.run parseInput (Tokens.fromText example) with
+    Left err -> failWith "parse error"
+    Right geo -> 
+      both 
+        (expect (height geo == 11))
+        (expect (width geo == 11))
+
+day03.part1 : '{IO, Exception} ()
+day03.part1 = do
+  submitSolution (Day 3) (Part 1) part1.solve
+
+day03.streamCoords : Nat -> Slope ->'{Stream Coord} ()
+day03.streamCoords height slope =
+  steps = height Nat./ (down slope)
+  nextStep : Coord -> Optional (Coord, Coord)
+  nextStep coord = 
+    newCoord = (addSlope coord slope)
+    if y newCoord < height then Some (duplicate newCoord) else None
+  Stream.unfold (Coord 0 0) nextStep
+
+Stream.count = Stream.fold (n _ -> n Nat.+ 1) 0
+
+test> day03.streamCoords.text.ex1 =
+  n = streamCoords 10 (Slope 1 1) |> Stream.count
+  check (!n == 9)
+  
+> streamCoords 11 (Slope 3 1) |> Stream.toList <| ()
+
+day03.isTree : Geology -> Coord -> Boolean
+day03.isTree geo coord = 
+  index = coordToIndex (width geo) coord
+  b = ByteArray.read8 (bytes geo) index
+  b == 1
+
+> maybeMod (fromNat 30) (fromNat 11)
+> coordToIndex 11 (Coord 30 10)
+
+day03.coordToIndex : Nat -> Coord -> Nat
+day03.coordToIndex geoWidth coord =
+  use Nat
+  xModCoord = 
+    maybeMod (x coord |> fromNat) (geoWidth |> fromNat)
+      |> Optional.flatMap toMaybeNat 
+      |> getOrBug "div 0" 
+  index = (y coord) Nat.* (geoWidth) + xModCoord
+  index
+-- 0 means no tree, 1 means tree, anything else is illegal
+-- width is the horizontal size of the input chunk
+structural type day03.Geology = {bytes:ByteArray,width:Nat,height:Nat}
+-- 0-based, topleft originated coordinate system
+structural type Coord = {x:Nat,y:Nat}
+
+day02.addSlope : Coord -> Slope -> Coord
+day02.addSlope coord slope = Coord (x coord Nat.+ right slope) (y coord Nat.+ down slope)
+  
+structural type day03.Slope = {right:Nat,down:Nat}
+
+day03.example = """
+..##.......
+#...#...#..
+.#....#..#.
+..#.#...#.#
+.#...##..#.
+..#.##.....
+.#.#.#....#
+.#........#
+#.##...#...
+#...##....#
+.#..#...#.#
+"""
+

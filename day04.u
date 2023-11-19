@@ -1,0 +1,70 @@
+use lib.base.data
+use lib.base.data.Map
+use lib.uniparsec.Parser
+use Parser
+use day04
+
+day04.part1.solve.example _ = part1.solve example
+
+day04.part1 : '{IO, Exception} ()
+day04.part1 = do
+  submitSolution (Day 4) (Part 1) part1.solve
+
+day04.part1.solve input =
+  use Nat
+  use Boolean
+  isValid = cases Passport kvs -> or (Map.size kvs Nat.== 8) (and (Map.size kvs Nat.== 7) (Boolean.not (Map.contains "cid" kvs)))
+  passports = parse input
+  validPassports = List.filter isValid passports
+  List.size validPassports |> Nat.toText
+
+day04.parseExample _ = parse example
+
+day04.parse : Text ->{IO, Exception} [Passport]
+day04.parse input =
+  use Nat * toText
+  use Text ++
+  geo = match Parser.run day04.parsePassports (Tokens.fromText input) with
+    Right g  -> g
+    Left err -> bug "parse error"
+  geo
+
+day04.parsePassports : Parser e Char [Passport]
+day04.parsePassports = 
+  many0 (parsePassport <* optional eol <* optional eol) <* endOfString
+  
+day04.parsePassport : Parser e Char Passport
+day04.parsePassport = 
+  day04.Passport.Passport << Map.fromList <$> sepBy1 parsePassportEntry (or (string " " |> ignore) eol)
+  
+
+day04.parsePassportEntry =
+  (oneOf [
+      string "ecl", string "pid",
+      string "eyr", string "hcl",
+      string "byr", string "iyr",
+      string "cid", string "hgt"] <* string ":")
+    ^ (parseCharsAsText (or ascii.alphanum (char ?#)))
+
+structural type day04.Passport = Passport (Map Text Text)
+
+Parser.ignore p = p *> const ()
+
+Parser.parseCharsAsText : Parser e Char Char -> Parser e Char Text
+Parser.parseCharsAsText p = (List.Nonempty.toList >> Text.fromCharList) <$> many1 p
+
+day04.example = """
+ecl:gry pid:860033327 eyr:2020 hcl:#fffffd
+byr:1937 iyr:2017 cid:147 hgt:183cm
+
+iyr:2013 ecl:amb cid:350 eyr:2023 pid:028048884
+hcl:#cfa07d byr:1929
+
+hcl:#ae17e1 iyr:2013
+eyr:2024
+ecl:brn pid:760753108 byr:1931
+hgt:179cm
+
+hcl:#cfa07d eyr:2025 pid:166559648
+iyr:2011 ecl:brn hgt:59in
+"""
