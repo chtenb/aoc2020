@@ -36,3 +36,4 @@ fun all-pairs(l1 : list<a>, l2:list<b>):list<(a,b)>
 
 fun valid-pairs(l : list<int>)
   filter(all-pairs(l, l), is-valid)
+

@@ -13,3 +13,26 @@ pub fun eol() : parse ()
   val _ = optional('\r', fn(){char('\r')})
   val _ = char('\n')
   ()
+
+effect each
+  ctl each(elems : list<a>) : a
+  ctl fail() : a
+
+fun list-comp(action : () -> each a) : list<a>
+  with handler
+    return (x) [x]
+    ctl each(elems)
+      flatmap(elems, resume)
+    ctl fail() []
+  action()
+
+fun guard(pred : bool) : each ()
+  if pred then () else fail()
+
+pub fun test-each()
+  list-comp
+    val x = each([1,2,3])
+    val y = each([1,2,2])
+    val z = x+y
+    guard (z != 3)
+    z * z
