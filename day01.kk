@@ -32,7 +32,7 @@ fun parse-line() : parse int
 
 fun is-valid((a:int, b:int)) { a + b == 2020 }
 fun all-pairs(l1 : list<a>, l2:list<b>):list<(a,b)>
-  flatmap(l1, fn(x) { map(l2, fn (y) { (x,y) } ) } )
+  flatmap(l1, fn(x) { map(l2, fn (y) (x,y) ) } )
 
 fun valid-pairs(l : list<int>)
   filter(all-pairs(l, l), is-valid)

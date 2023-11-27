@@ -10,7 +10,7 @@ pub fun parse-exn(input:string, p:parser<total, a>) : exn a
     ParseError(msg, _) -> throw-exn(Exception("parse error: " ++ msg, ExnError))
 
 pub fun eol() : parse ()
-  val _ = optional('\r', fn(){char('\r')})
+  val _ = optional('\r', { char('\r') })
   val _ = char('\n')
   ()
 
@@ -21,8 +21,7 @@ effect each
 fun list-comp(action : () -> each a) : list<a>
   with handler
     return (x) [x]
-    ctl each(elems)
-      flatmap(elems, resume)
+    ctl each(elems) elems.flatmap(resume)
     ctl fail() []
   action()
 
